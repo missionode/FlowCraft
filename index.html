@@ -1,55 +1,1156 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Workflow Planner</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>FlowCraft</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* --- Base & Typography --- */
+        :root {
+            --color-bg: #f8f9fa;
+            --color-canvas-bg: #ffffff;
+            --color-grid: #e9ecef;
+            --color-text-primary: #212529;
+            --color-text-secondary: #6c757d;
+            --color-border: #dee2e6;
+            --color-accent: #007bff;
+            --color-accent-light: #cce5ff;
+            --color-danger: #dc3545;
+            --color-node-shadow: rgba(0, 0, 0, 0.05);
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            font-family: var(--font-family);
+            margin: 0;
+            padding: 0;
+            background-color: var(--color-bg);
+            color: var(--color-text-primary);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* --- Toolbar --- */
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 16px;
+            background-color: var(--color-bg);
+            border-bottom: 1px solid var(--color-border);
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .toolbar-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .project-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .project-title:hover {
+            background-color: #e9ecef;
+        }
+        .project-title-input {
+            font-size: 1.1em;
+            font-weight: 600;
+            border: 1px solid var(--color-accent);
+            border-radius: 6px;
+            padding: 5px 9px;
+            outline: none;
+        }
+
+        .tool-btn {
+            background: none;
+            border: 1px solid transparent;
+            font-size: 16px;
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            color: var(--color-text-secondary);
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .tool-btn:hover {
+            background-color: #e9ecef;
+            color: var(--color-text-primary);
+        }
+
+        .tool-btn.active {
+            background-color: var(--color-accent-light);
+            color: var(--color-accent);
+        }
+        
+        .tool-btn .tooltip {
+            visibility: hidden;
+            width: 120px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 0;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -60px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .tool-btn:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .zoom-display {
+            font-size: 0.9em;
+            color: var(--color-text-secondary);
+            font-weight: 500;
+        }
+
+        /* --- Main Content Area --- */
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* --- Canvas --- */
+        #canvas-container {
+            flex-grow: 1;
+            position: relative;
+            overflow: hidden;
+            background-color: var(--color-canvas-bg);
+            background-image: radial-gradient(var(--color-grid) 1px, transparent 1px);
+            background-size: 20px 20px;
+            cursor: grab;
+        }
+        #canvas-container.drawing {
+            cursor: crosshair;
+        }
+        #canvas-container:active {
+            cursor: grabbing;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #workflow-nodes {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-origin: 0 0;
+        }
+
+        /* --- Nodes --- */
+        .node {
+            position: absolute;
+            background-color: white;
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            min-width: 180px;
+            box-shadow: 0 4px 12px var(--color-node-shadow);
+            cursor: default;
+            padding: 12px;
+            transition: box-shadow 0.2s, transform 0.1s;
+            user-select: none;
+        }
+        .node:hover {
+            box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+        }
+        .node.selected {
+            border-color: var(--color-accent);
+            box-shadow: 0 0 0 3px var(--color-accent-light);
+        }
+        .node-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: move;
+        }
+        .node-name {
+            font-weight: 600;
+        }
+        .node-description {
+            font-size: 0.85em;
+            color: var(--color-text-secondary);
+            margin-top: 6px;
+            white-space: pre-wrap;
+        }
+        .node-sitemap-icon {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            font-size: 12px;
+            color: var(--color-text-secondary);
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .node:hover .node-sitemap-icon {
+            opacity: 1;
+        }
+        .node-sitemap-icon.active {
+             opacity: 1;
+             color: var(--color-accent);
+        }
+
+        /* --- Connections --- */
+        .arrow {
+            stroke: var(--color-text-secondary);
+            stroke-width: 2;
+            fill: none;
+            pointer-events: none;
+        }
+        .arrow-head {
+            stroke: var(--color-text-secondary);
+            stroke-width: 2;
+            fill: var(--color-text-secondary);
+        }
+        .arrow-interaction-area {
+            stroke: transparent;
+            stroke-width: 20;
+            fill: none;
+            cursor: pointer;
+        }
+        .arrow-split-handle {
+            fill: var(--color-accent);
+            cursor: pointer;
+            transition: r 0.2s;
+        }
+        .arrow-split-handle:hover {
+            r: 8;
+        }
+        .arrow-label {
+            font-size: 12px;
+            fill: var(--color-text-primary);
+            background-color: rgba(255,255,255,0.7);
+            padding: 2px 4px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        /* --- Sitemap Panel --- */
+        #sitemap-panel {
+            width: 280px;
+            background-color: var(--color-bg);
+            border-left: 1px solid var(--color-border);
+            flex-shrink: 0;
+            padding: 16px;
+            transition: margin-right 0.3s ease-in-out;
+            margin-right: -281px;
+            overflow-y: auto;
+        }
+        #sitemap-panel.open {
+            margin-right: 0;
+        }
+        .sitemap-header {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+        .sitemap-tree ul {
+            list-style: none;
+            padding-left: 20px;
+        }
+        .sitemap-tree li {
+            padding: 4px 0;
+        }
+        .sitemap-parent > span {
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .sitemap-parent > span::before {
+            content: '▶';
+            display: inline-block;
+            margin-right: 8px;
+            transition: transform 0.2s;
+        }
+        .sitemap-parent.open > span::before {
+            transform: rotate(90deg);
+        }
+        .sitemap-parent ul {
+            display: none;
+        }
+        .sitemap-parent.open ul {
+            display: block;
+        }
+
+        /* --- Modals --- */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .modal-content {
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .modal-header {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+        .modal-body label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            font-size: 0.9em;
+        }
+        .modal-body input, .modal-body textarea, .modal-body select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid var(--color-border);
+            margin-bottom: 16px;
+            box-sizing: border-box;
+        }
+        .modal-body textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        .color-palette {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .color-swatch {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        .color-swatch.selected {
+            border-color: var(--color-accent);
+        }
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        .modal-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: 1px solid var(--color-border);
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .modal-btn.primary {
+            background-color: var(--color-accent);
+            color: white;
+            border-color: var(--color-accent);
+        }
+        .modal-btn.danger {
+            background-color: var(--color-danger);
+            color: white;
+            border-color: var(--color-danger);
+        }
+
+        /* --- Responsive Design --- */
+        @media (max-width: 768px) {
+            .toolbar {
+                flex-wrap: wrap;
+                padding: 8px;
+            }
+            .toolbar-section {
+                gap: 4px;
+            }
+            .tool-btn {
+                padding: 6px;
+            }
+            .project-title {
+                font-size: 1em;
+            }
+            #sitemap-panel {
+                position: fixed;
+                top: 50px; /* Below toolbar */
+                right: 0;
+                bottom: 0;
+                width: 80%;
+                max-width: 300px;
+                z-index: 20;
+                margin-right: -100%;
+            }
+            #sitemap-panel.open {
+                margin-right: 0;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div id="toolbar" class="toolbar">
-        <span id="canvas-title" class="title">Untitled</span>
-        <div class="tools">
-            <i class="fas fa-plus" id="add-node" title="Add Node"></i>
-            <i class="fas fa-arrows-alt" id="draw-arrow" title="Draw Arrow"></i>
-            <i class="fas fa-undo" id="undo" title="Undo"></i>
-            <i class="fas fa-redo" id="redo" title="Redo"></i>
-            <i class="fas fa-search-plus" id="zoom-in" title="Zoom In"></i>
-            <i class="fas fa-search-minus" id="zoom-out" title="Zoom Out"></i>
+
+    <div class="toolbar">
+        <div class="toolbar-section">
+            <span id="project-title" class="project-title">Untitled Flow</span>
         </div>
-        <div class="actions">
-            <i class="fas fa-save" id="save" title="Save"></i>
-            <i class="fas fa-download" id="export-json" title="Export JSON"></i>
-            <i class="fas fa-upload" id="import-json" title="Import JSON"></i>
+        <div class="toolbar-section">
+            <button id="select-tool" class="tool-btn active"><i class="fas fa-mouse-pointer"></i><span class="tooltip">Select (V)</span></button>
+            <button id="add-node-tool" class="tool-btn"><i class="fas fa-plus-square"></i><span class="tooltip">Add Node (N)</span></button>
+            <button id="draw-arrow-tool" class="tool-btn"><i class="fas fa-long-arrow-alt-right"></i><span class="tooltip">Draw Arrow (A)</span></button>
         </div>
-    </div>
-    <div id="workspace" class="workspace">
-        <div id="main-canvas" class="canvas"></div>
-        <div id="sitemap-panel" class="panel">
-            <div class="panel-header">
-                <span class="panel-title">Sitemaps</span>
-                <i class="fas fa-chevron-right" id="toggle-panel" title="Collapse"></i>
-            </div>
-            <div id="sitemap-content" class="panel-content"></div>
+        <div class="toolbar-section">
+            <button id="undo-btn" class="tool-btn"><i class="fas fa-undo"></i><span class="tooltip">Undo (Ctrl+Z)</span></button>
+            <button id="redo-btn" class="tool-btn"><i class="fas fa-redo"></i><span class="tooltip">Redo (Ctrl+Y)</span></button>
+            <button id="zoom-out-btn" class="tool-btn"><i class="fas fa-search-minus"></i></button>
+            <span id="zoom-display" class="zoom-display">100%</span>
+            <button id="zoom-in-btn" class="tool-btn"><i class="fas fa-search-plus"></i></button>
+            <button id="export-btn" class="tool-btn"><i class="fas fa-download"></i><span class="tooltip">Export JSON</span></button>
+            <button id="import-btn" class="tool-btn"><i class="fas fa-upload"></i><span class="tooltip">Import JSON</span></button>
+            <input type="file" id="import-input" style="display: none;" accept=".json">
+            <button id="toggle-sitemap-btn" class="tool-btn"><i class="fas fa-sitemap"></i><span class="tooltip">Toggle Sitemap</span></button>
         </div>
     </div>
-    <div id="properties-panel" class="properties hidden">
-        <h3>Node Properties</h3>
-        <label>Name: <input id="prop-name" type="text"></label>
-        <label>Description: <textarea id="prop-desc"></textarea></label>
-        <label>Color: <input id="prop-color" type="color"></label>
-        <label>Type: 
-            <select id="prop-type">
-                <option value="standard">Standard</option>
-                <option value="decision">Decision</option>
-                <option value="merge">Merge</option>
-            </select>
-        </label>
-        <button id="prop-save">Save</button>
+
+    <div class="main-content">
+        <div id="canvas-container">
+            <svg id="canvas" width="100%" height="100%"></svg>
+            <div id="workflow-nodes"></div>
+        </div>
+        <div id="sitemap-panel">
+            <h3 class="sitemap-header">Sitemap</h3>
+            <div id="sitemap-tree" class="sitemap-tree"></div>
+            <button id="add-sitemap-parent-btn" class="modal-btn" style="width:100%; margin-top: 16px;">Add New Section</button>
+        </div>
     </div>
-    <input type="file" id="file-input" accept=".json" style="display:none;">
-    <script src="script.js"></script>
+
+    <!-- Modals will be injected here by JavaScript -->
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Elements ---
+            const canvasContainer = document.getElementById('canvas-container');
+            const svgCanvas = document.getElementById('canvas');
+            const nodesContainer = document.getElementById('workflow-nodes');
+            const sitemapPanel = document.getElementById('sitemap-panel');
+            const sitemapTree = document.getElementById('sitemap-tree');
+            const projectTitle = document.getElementById('project-title');
+            
+            // Toolbar buttons
+            const toolBtns = {
+                select: document.getElementById('select-tool'),
+                addNode: document.getElementById('add-node-tool'),
+                drawArrow: document.getElementById('draw-arrow-tool'),
+                undo: document.getElementById('undo-btn'),
+                redo: document.getElementById('redo-btn'),
+                zoomIn: document.getElementById('zoom-in-btn'),
+                zoomOut: document.getElementById('zoom-out-btn'),
+                export: document.getElementById('export-btn'),
+                importBtn: document.getElementById('import-btn'),
+                importInput: document.getElementById('import-input'),
+                toggleSitemap: document.getElementById('toggle-sitemap-btn'),
+                addSitemapParent: document.getElementById('add-sitemap-parent-btn'),
+            };
+            const zoomDisplay = document.getElementById('zoom-display');
+
+            // --- State Management ---
+            let state = {
+                projectName: 'Untitled Flow',
+                nodes: {},
+                connections: [],
+                sitemap: {},
+                pan: { x: 0, y: 0 },
+                zoom: 1,
+            };
+
+            let history = [];
+            let historyIndex = -1;
+
+            let activeTool = 'select';
+            let isPanning = false;
+            let panStart = { x: 0, y: 0 };
+            let selectedNodeId = null;
+            let drawingArrow = null; // { fromNodeId, pathElement }
+
+            const DB_NAME = 'FlowCraftDB';
+            const STORE_NAME = 'flows';
+            let db;
+
+            // --- IndexedDB ---
+            function initDB() {
+                const request = indexedDB.open(DB_NAME, 1);
+                request.onupgradeneeded = e => {
+                    const dbInstance = e.target.result;
+                    dbInstance.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                };
+                request.onsuccess = e => {
+                    db = e.target.result;
+                    loadState();
+                };
+                request.onerror = e => console.error('IndexedDB error:', e.target.errorCode);
+            }
+
+            function saveState(recordHistory = true) {
+                if (recordHistory) {
+                    // Clear redo history
+                    if (historyIndex < history.length - 1) {
+                        history = history.slice(0, historyIndex + 1);
+                    }
+                    history.push(JSON.parse(JSON.stringify(state)));
+                    historyIndex++;
+                }
+
+                if (db) {
+                    const transaction = db.transaction([STORE_NAME], 'readwrite');
+                    const store = transaction.objectStore(STORE_NAME);
+                    store.put({ id: 'last_flow', ...state });
+                }
+                render();
+            }
+
+            function loadState() {
+                if (!db) return;
+                const transaction = db.transaction([STORE_NAME], 'readonly');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.get('last_flow');
+                request.onsuccess = e => {
+                    if (e.target.result) {
+                        const loadedState = e.target.result;
+                        delete loadedState.id;
+                        state = loadedState;
+                        history = [JSON.parse(JSON.stringify(state))];
+                        historyIndex = 0;
+                    }
+                    render();
+                };
+            }
+
+            // --- Rendering ---
+            function render() {
+                // Render Nodes
+                nodesContainer.innerHTML = '';
+                Object.values(state.nodes).forEach(node => {
+                    const nodeEl = document.createElement('div');
+                    nodeEl.className = 'node';
+                    if (node.id === selectedNodeId) nodeEl.classList.add('selected');
+                    nodeEl.id = `node-${node.id}`;
+                    nodeEl.style.left = `${node.x}px`;
+                    nodeEl.style.top = `${node.y}px`;
+                    if(node.color) nodeEl.style.backgroundColor = node.color;
+
+                    const sitemapIconClass = node.sitemapId ? 'fas fa-map-pin active' : 'fas fa-map-pin';
+
+                    nodeEl.innerHTML = `
+                        <div class="node-header">
+                            <span class="node-name">${node.name}</span>
+                        </div>
+                        <p class="node-description">${node.description || ''}</p>
+                        <i class="${sitemapIconClass} node-sitemap-icon" data-node-id="${node.id}"></i>
+                    `;
+                    nodesContainer.appendChild(nodeEl);
+                });
+                
+                // Render Connections
+                svgCanvas.innerHTML = '';
+                state.connections.forEach(conn => drawConnection(conn));
+
+                // Render Sitemap
+                renderSitemap();
+
+                // Update UI elements
+                projectTitle.textContent = state.projectName;
+                zoomDisplay.textContent = `${Math.round(state.zoom * 100)}%`;
+                nodesContainer.style.transform = `translate(${state.pan.x}px, ${state.pan.y}px) scale(${state.zoom})`;
+                svgCanvas.style.transform = `translate(${state.pan.x}px, ${state.pan.y}px) scale(${state.zoom})`;
+
+                updateUndoRedoButtons();
+            }
+            
+            function drawConnection(conn) {
+                const fromNode = state.nodes[conn.from];
+                const toNode = state.nodes[conn.to];
+                if (!fromNode || !toNode) return;
+
+                const fromEl = document.getElementById(`node-${conn.from}`);
+                const toEl = document.getElementById(`node-${conn.to}`);
+
+                const fromRect = { x: fromNode.x, y: fromNode.y, width: fromEl.offsetWidth, height: fromEl.offsetHeight };
+                const toRect = { x: toNode.x, y: toNode.y, width: toEl.offsetWidth, height: toEl.offsetHeight };
+
+                const start = getEdgePoint(fromRect, toRect);
+                const end = getEdgePoint(toRect, fromRect);
+                
+                const pathData = `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
+
+                const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                
+                const interactionPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                interactionPath.setAttribute('d', pathData);
+                interactionPath.classList.add('arrow-interaction-area');
+                interactionPath.onclick = () => showConnectionModal(conn);
+                
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', pathData);
+                path.classList.add('arrow');
+                if (conn.style === 'dashed') path.setAttribute('stroke-dasharray', '5,5');
+                if (conn.color) path.style.stroke = conn.color;
+
+                const arrowHead = createArrowHead(end, start);
+                if (conn.color) arrowHead.style.fill = conn.color;
+
+                group.appendChild(interactionPath);
+                group.appendChild(path);
+                group.appendChild(arrowHead);
+
+                if (conn.label) {
+                    const midX = (start.x + end.x) / 2;
+                    const midY = (start.y + end.y) / 2;
+                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    text.setAttribute('x', midX);
+                    text.setAttribute('y', midY);
+                    text.setAttribute('text-anchor', 'middle');
+                    text.setAttribute('dy', '-5');
+                    text.classList.add('arrow-label');
+                    text.textContent = conn.label;
+                    text.onclick = () => showConnectionModal(conn);
+                    group.appendChild(text);
+                }
+                
+                svgCanvas.appendChild(group);
+            }
+
+            function getEdgePoint(rectA, rectB) {
+                const centerA = { x: rectA.x + rectA.width / 2, y: rectA.y + rectA.height / 2 };
+                const centerB = { x: rectB.x + rectB.width / 2, y: rectB.y + rectB.height / 2 };
+
+                const dx = centerB.x - centerA.x;
+                const dy = centerB.y - centerA.y;
+
+                const halfWidthA = rectA.width / 2;
+                const halfHeightA = rectA.height / 2;
+
+                if (dx === 0) {
+                    return { x: centerA.x, y: centerA.y + Math.sign(dy) * halfHeightA };
+                }
+
+                const slope = dy / dx;
+                const absSlope = Math.abs(slope);
+                
+                if (absSlope * halfWidthA <= halfHeightA) {
+                    return { x: centerA.x + Math.sign(dx) * halfWidthA, y: centerA.y + Math.sign(dx) * slope * halfWidthA };
+                } else {
+                    return { x: centerA.x + Math.sign(dy) * halfHeightA / slope, y: centerA.y + Math.sign(dy) * halfHeightA };
+                }
+            }
+
+            function createArrowHead(p1, p2) {
+                const head = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                const angle = Math.atan2(p1.y - p2.y, p1.x - p2.x);
+                const size = 8;
+                const p1x = p1.x - size * Math.cos(angle - Math.PI / 6);
+                const p1y = p1.y - size * Math.sin(angle - Math.PI / 6);
+                const p2x = p1.x - size * Math.cos(angle + Math.PI / 6);
+                const p2y = p1.y - size * Math.sin(angle + Math.PI / 6);
+                head.setAttribute('points', `${p1.x},${p1.y} ${p1x},${p1y} ${p2x},${p2y}`);
+                head.classList.add('arrow-head');
+                return head;
+            }
+
+            function renderSitemap() {
+                sitemapTree.innerHTML = '';
+                Object.entries(state.sitemap).forEach(([parentId, parent]) => {
+                    const parentLi = document.createElement('li');
+                    parentLi.className = 'sitemap-parent';
+                    parentLi.innerHTML = `<span data-id="${parentId}">${parent.name}</span>`;
+                    
+                    const childUl = document.createElement('ul');
+                    parent.children.forEach(childId => {
+                        const node = Object.values(state.nodes).find(n => n.sitemapId === childId);
+                        if (node) {
+                            const childLi = document.createElement('li');
+                            childLi.textContent = node.name;
+                            childUl.appendChild(childLi);
+                        }
+                    });
+                    parentLi.appendChild(childUl);
+                    sitemapTree.appendChild(parentLi);
+                });
+            }
+
+            // --- Event Handlers ---
+            function setActiveTool(tool) {
+                activeTool = tool;
+                Object.values(toolBtns).forEach(btn => btn.classList.remove('active'));
+                if (toolBtns[tool]) toolBtns[tool].classList.add('active');
+                canvasContainer.className = tool === 'drawArrow' ? 'drawing' : '';
+            }
+
+            toolBtns.select.onclick = () => setActiveTool('select');
+            toolBtns.addNode.onclick = () => setActiveTool('addNode');
+            toolBtns.drawArrow.onclick = () => setActiveTool('drawArrow');
+
+            canvasContainer.onmousedown = e => {
+                if (e.target !== canvasContainer && e.target !== nodesContainer && e.target !== svgCanvas) return;
+                
+                if (activeTool === 'select') {
+                    isPanning = true;
+                    panStart = { x: e.clientX, y: e.clientY };
+                    canvasContainer.style.cursor = 'grabbing';
+                }
+            };
+
+            canvasContainer.onmousemove = e => {
+                if (isPanning) {
+                    const dx = e.clientX - panStart.x;
+                    const dy = e.clientY - panStart.y;
+                    state.pan.x += dx;
+                    state.pan.y += dy;
+                    panStart = { x: e.clientX, y: e.clientY };
+                    render();
+                }
+
+                if (drawingArrow) {
+                    const fromNode = state.nodes[drawingArrow.fromNodeId];
+                    const fromEl = document.getElementById(`node-${fromNode.id}`);
+                    const fromRect = { x: fromNode.x, y: fromNode.y, width: fromEl.offsetWidth, height: fromEl.offsetHeight };
+                    
+                    const canvasRect = canvasContainer.getBoundingClientRect();
+                    const mousePos = {
+                        x: (e.clientX - canvasRect.left - state.pan.x) / state.zoom,
+                        y: (e.clientY - canvasRect.top - state.pan.y) / state.zoom
+                    };
+
+                    const start = getEdgePoint(fromRect, { ...mousePos, width: 1, height: 1 });
+                    const pathData = `M ${start.x} ${start.y} L ${mousePos.x} ${mousePos.y}`;
+                    drawingArrow.pathElement.setAttribute('d', pathData);
+                }
+            };
+
+            canvasContainer.onmouseup = e => {
+                isPanning = false;
+                canvasContainer.style.cursor = 'grab';
+                if (e.target === canvasContainer && activeTool === 'addNode') {
+                    const canvasRect = canvasContainer.getBoundingClientRect();
+                    const x = (e.clientX - canvasRect.left - state.pan.x) / state.zoom;
+                    const y = (e.clientY - canvasRect.top - state.pan.y) / state.zoom;
+                    createNode(x, y);
+                    setActiveTool('select');
+                }
+                if (drawingArrow) {
+                    svgCanvas.removeChild(drawingArrow.pathElement);
+                    drawingArrow = null;
+                }
+            };
+
+            canvasContainer.onwheel = e => {
+                e.preventDefault();
+                const zoomFactor = 1.1;
+                const oldZoom = state.zoom;
+                state.zoom *= e.deltaY > 0 ? 1 / zoomFactor : zoomFactor;
+                state.zoom = Math.max(0.2, Math.min(3, state.zoom));
+
+                const canvasRect = canvasContainer.getBoundingClientRect();
+                const mouseX = e.clientX - canvasRect.left;
+                const mouseY = e.clientY - canvasRect.top;
+
+                state.pan.x = mouseX - (mouseX - state.pan.x) * (state.zoom / oldZoom);
+                state.pan.y = mouseY - (mouseY - state.pan.y) * (state.zoom / oldZoom);
+
+                saveState(false); // Save pan/zoom without history
+            };
+
+            // Node Dragging
+            nodesContainer.addEventListener('mousedown', e => {
+                const nodeEl = e.target.closest('.node');
+                if (!nodeEl || activeTool !== 'select') return;
+
+                selectedNodeId = nodeEl.id.replace('node-', '');
+                
+                if (e.target.classList.contains('node-sitemap-icon')) {
+                    showSitemapModal(selectedNodeId);
+                    return;
+                }
+
+                if (!e.target.closest('.node-header')) return;
+
+                const startPos = { x: e.clientX, y: e.clientY };
+                const initialNodePos = { x: state.nodes[selectedNodeId].x, y: state.nodes[selectedNodeId].y };
+
+                function onMove(moveEvent) {
+                    const dx = (moveEvent.clientX - startPos.x) / state.zoom;
+                    const dy = (moveEvent.clientY - startPos.y) / state.zoom;
+                    state.nodes[selectedNodeId].x = initialNodePos.x + dx;
+                    state.nodes[selectedNodeId].y = initialNodePos.y + dy;
+                    render();
+                }
+
+                function onUp() {
+                    document.removeEventListener('mousemove', onMove);
+                    document.removeEventListener('mouseup', onUp);
+                    saveState();
+                }
+
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup', onUp);
+
+                render();
+            });
+            
+            // Arrow Drawing
+            nodesContainer.addEventListener('mousedown', e => {
+                const nodeEl = e.target.closest('.node');
+                if (!nodeEl || activeTool !== 'drawArrow') return;
+
+                const fromNodeId = nodeEl.id.replace('node-', '');
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.classList.add('arrow');
+                path.setAttribute('stroke-dasharray', '5,5');
+                svgCanvas.appendChild(path);
+                
+                drawingArrow = { fromNodeId, pathElement: path };
+            });
+            
+            nodesContainer.addEventListener('mouseup', e => {
+                const nodeEl = e.target.closest('.node');
+                if (!nodeEl || !drawingArrow) return;
+                
+                const toNodeId = nodeEl.id.replace('node-', '');
+                if (drawingArrow.fromNodeId !== toNodeId) {
+                    createConnection(drawingArrow.fromNodeId, toNodeId);
+                }
+            });
+
+            // Node Editing
+            nodesContainer.addEventListener('dblclick', e => {
+                const nodeEl = e.target.closest('.node');
+                if (nodeEl) {
+                    const nodeId = nodeEl.id.replace('node-', '');
+                    showNodeModal(nodeId);
+                }
+            });
+
+            // --- Actions ---
+            function createNode(x, y) {
+                const id = `node_${Date.now()}`;
+                state.nodes[id] = { id, name: 'New Node', description: '', x, y, color: '#ffffff' };
+                saveState();
+            }
+
+            function createConnection(from, to) {
+                const id = `conn_${Date.now()}`;
+                // Avoid duplicate connections
+                if (state.connections.some(c => c.from === from && c.to === to)) return;
+                state.connections.push({ id, from, to, label: '', style: 'solid', color: '#6c757d' });
+                saveState();
+            }
+
+            function updateUndoRedoButtons() {
+                toolBtns.undo.disabled = historyIndex <= 0;
+                toolBtns.redo.disabled = historyIndex >= history.length - 1;
+            }
+
+            toolBtns.undo.onclick = () => {
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    state = JSON.parse(JSON.stringify(history[historyIndex]));
+                    saveState(false); // Save without adding to history
+                }
+            };
+            toolBtns.redo.onclick = () => {
+                if (historyIndex < history.length - 1) {
+                    historyIndex++;
+                    state = JSON.parse(JSON.stringify(history[historyIndex]));
+                    saveState(false);
+                }
+            };
+            
+            toolBtns.zoomIn.onclick = () => {
+                state.zoom = Math.min(3, state.zoom * 1.2);
+                saveState(false);
+            };
+            toolBtns.zoomOut.onclick = () => {
+                state.zoom = Math.max(0.2, state.zoom / 1.2);
+                saveState(false);
+            };
+
+            toolBtns.toggleSitemap.onclick = () => {
+                sitemapPanel.classList.toggle('open');
+                toolBtns.toggleSitemap.classList.toggle('active');
+            };
+
+            toolBtns.export.onclick = () => {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
+                const downloadAnchorNode = document.createElement('a');
+                downloadAnchorNode.setAttribute("href", dataStr);
+                downloadAnchorNode.setAttribute("download", `${state.projectName}.json`);
+                document.body.appendChild(downloadAnchorNode);
+                downloadAnchorNode.click();
+                downloadAnchorNode.remove();
+            };
+
+            toolBtns.importBtn.onclick = () => toolBtns.importInput.click();
+            toolBtns.importInput.onchange = e => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = event => {
+                    try {
+                        const importedState = JSON.parse(event.target.result);
+                        // Basic validation
+                        if (importedState.nodes && importedState.connections) {
+                            state = importedState;
+                            saveState();
+                        } else {
+                            alert('Invalid file format.');
+                        }
+                    } catch (err) {
+                        alert('Error parsing file.');
+                        console.error(err);
+                    }
+                };
+                reader.readAsText(file);
+                e.target.value = ''; // Reset input
+            };
+            
+            projectTitle.onclick = () => {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'project-title-input';
+                input.value = state.projectName;
+                projectTitle.replaceWith(input);
+                input.focus();
+                input.select();
+
+                function saveTitle() {
+                    state.projectName = input.value || 'Untitled Flow';
+                    input.replaceWith(projectTitle);
+                    saveState();
+                }
+
+                input.onblur = saveTitle;
+                input.onkeydown = (e) => { if (e.key === 'Enter') saveTitle(); };
+            };
+
+            sitemapTree.addEventListener('click', e => {
+                if (e.target.tagName === 'SPAN') {
+                    e.target.parentElement.classList.toggle('open');
+                }
+            });
+
+            toolBtns.addSitemapParent.onclick = () => {
+                const name = prompt('Enter new sitemap section name:');
+                if (name) {
+                    const id = `sitemap_${Date.now()}`;
+                    state.sitemap[id] = { id, name, children: [] };
+                    saveState();
+                }
+            };
+            
+            // --- Modals ---
+            function createModal(title, bodyHtml, footerHtml) {
+                const backdrop = document.createElement('div');
+                backdrop.className = 'modal-backdrop';
+                backdrop.innerHTML = `
+                    <div class="modal-content">
+                        <div class="modal-header">${title}</div>
+                        <div class="modal-body">${bodyHtml}</div>
+                        <div class="modal-footer">${footerHtml}</div>
+                    </div>
+                `;
+                document.body.appendChild(backdrop);
+                backdrop.onclick = e => {
+                    if (e.target === backdrop) {
+                        backdrop.remove();
+                    }
+                };
+                return backdrop;
+            }
+
+            function showNodeModal(nodeId) {
+                const node = state.nodes[nodeId];
+                const colors = ['#ffffff', '#d1e7fd', '#d4edda', '#fff3cd', '#e2d9f3', '#ffe8d1'];
+                const colorPaletteHtml = colors.map(c => 
+                    `<div class="color-swatch" style="background-color:${c}" data-color="${c}"></div>`
+                ).join('');
+
+                const body = `
+                    <label for="node-name">Name</label>
+                    <input type="text" id="node-name" value="${node.name}">
+                    <label for="node-desc">Description</label>
+                    <textarea id="node-desc">${node.description || ''}</textarea>
+                    <label>Color</label>
+                    <div class="color-palette" id="node-color-palette">${colorPaletteHtml}</div>
+                `;
+                const footer = `
+                    <button id="delete-node-btn" class="modal-btn danger">Delete</button>
+                    <button id="cancel-node-btn" class="modal-btn">Cancel</button>
+                    <button id="save-node-btn" class="modal-btn primary">Save</button>
+                `;
+
+                const modal = createModal('Edit Node', body, footer);
+                const nameInput = modal.querySelector('#node-name');
+                const descInput = modal.querySelector('#node-desc');
+                const palette = modal.querySelector('#node-color-palette');
+                let selectedColor = node.color;
+                
+                palette.querySelectorAll('.color-swatch').forEach(swatch => {
+                    if (swatch.dataset.color === selectedColor) swatch.classList.add('selected');
+                    swatch.onclick = () => {
+                        palette.querySelector('.selected')?.classList.remove('selected');
+                        swatch.classList.add('selected');
+                        selectedColor = swatch.dataset.color;
+                    };
+                });
+
+                modal.querySelector('#save-node-btn').onclick = () => {
+                    node.name = nameInput.value;
+                    node.description = descInput.value;
+                    node.color = selectedColor;
+                    saveState();
+                    modal.remove();
+                };
+                modal.querySelector('#cancel-node-btn').onclick = () => modal.remove();
+                modal.querySelector('#delete-node-btn').onclick = () => {
+                    delete state.nodes[nodeId];
+                    state.connections = state.connections.filter(c => c.from !== nodeId && c.to !== nodeId);
+                    saveState();
+                    modal.remove();
+                };
+            }
+            
+            function showSitemapModal(nodeId) {
+                const node = state.nodes[nodeId];
+                let options = '<option value="">None</option>';
+                Object.values(state.sitemap).forEach(parent => {
+                    options += `<optgroup label="${parent.name}">`;
+                    const childId = `child_${parent.id}_${nodeId}`;
+                    const isSelected = node.sitemapId === childId;
+                    options += `<option value="${childId}" ${isSelected ? 'selected' : ''}>${node.name}</option>`;
+                    options += `</optgroup>`;
+                });
+
+                const body = `
+                    <p>Attach "<strong>${node.name}</strong>" to a sitemap entry.</p>
+                    <label for="sitemap-select">Sitemap Section</label>
+                    <select id="sitemap-select">${options}</select>
+                `;
+                const footer = `
+                    <button id="cancel-sitemap-btn" class="modal-btn">Cancel</button>
+                    <button id="save-sitemap-btn" class="modal-btn primary">Save</button>
+                `;
+                const modal = createModal('Link to Sitemap', body, footer);
+
+                modal.querySelector('#save-sitemap-btn').onclick = () => {
+                    const select = modal.querySelector('#sitemap-select');
+                    const newSitemapId = select.value;
+
+                    // Remove from old parent
+                    if (node.sitemapId) {
+                        const oldParentId = Object.keys(state.sitemap).find(pId => state.sitemap[pId].children.includes(node.sitemapId));
+                        if(oldParentId) {
+                            state.sitemap[oldParentId].children = state.sitemap[oldParentId].children.filter(c => c !== node.sitemapId);
+                        }
+                    }
+
+                    // Add to new parent
+                    node.sitemapId = newSitemapId;
+                    if (newSitemapId) {
+                        const newParentId = Object.keys(state.sitemap).find(pId => newSitemapId.startsWith(`child_${pId}`));
+                        if (newParentId && !state.sitemap[newParentId].children.includes(newSitemapId)) {
+                             state.sitemap[newParentId].children.push(newSitemapId);
+                        }
+                    }
+                    saveState();
+                    modal.remove();
+                };
+                modal.querySelector('#cancel-sitemap-btn').onclick = () => modal.remove();
+            }
+
+            function showConnectionModal(conn) {
+                const body = `
+                    <label for="conn-label">Label (Condition)</label>
+                    <input type="text" id="conn-label" value="${conn.label || ''}">
+                    <label for="conn-style">Style</label>
+                    <select id="conn-style">
+                        <option value="solid" ${conn.style === 'solid' ? 'selected' : ''}>Solid</option>
+                        <option value="dashed" ${conn.style === 'dashed' ? 'selected' : ''}>Dashed</option>
+                    </select>
+                    <label for="conn-color">Color</label>
+                    <input type="color" id="conn-color" value="${conn.color || '#6c757d'}">
+                `;
+                const footer = `
+                    <button id="delete-conn-btn" class="modal-btn danger">Delete</button>
+                    <button id="cancel-conn-btn" class="modal-btn">Cancel</button>
+                    <button id="save-conn-btn" class="modal-btn primary">Save</button>
+                `;
+                const modal = createModal('Edit Connection', body, footer);
+
+                modal.querySelector('#save-conn-btn').onclick = () => {
+                    conn.label = modal.querySelector('#conn-label').value;
+                    conn.style = modal.querySelector('#conn-style').value;
+                    conn.color = modal.querySelector('#conn-color').value;
+                    saveState();
+                    modal.remove();
+                };
+                modal.querySelector('#cancel-conn-btn').onclick = () => modal.remove();
+                modal.querySelector('#delete-conn-btn').onclick = () => {
+                    state.connections = state.connections.filter(c => c.id !== conn.id);
+                    saveState();
+                    modal.remove();
+                };
+            }
+            
+            // --- Keyboard Shortcuts ---
+            document.addEventListener('keydown', e => {
+                if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+                
+                if (e.ctrlKey && e.key === 'z') {
+                    e.preventDefault();
+                    toolBtns.undo.click();
+                }
+                if (e.ctrlKey && e.key === 'y') {
+                    e.preventDefault();
+                    toolBtns.redo.click();
+                }
+                switch(e.key.toLowerCase()) {
+                    case 'v': setActiveTool('select'); break;
+                    case 'n': setActiveTool('addNode'); break;
+                    case 'a': setActiveTool('drawArrow'); break;
+                    case 'delete':
+                    case 'backspace':
+                        if (selectedNodeId) {
+                            delete state.nodes[selectedNodeId];
+                            state.connections = state.connections.filter(c => c.from !== selectedNodeId && c.to !== selectedNodeId);
+                            selectedNodeId = null;
+                            saveState();
+                        }
+                        break;
+                }
+            });
+
+
+            // --- Initial Load ---
+            initDB();
+        });
+    </script>
 </body>
 </html>
