@@ -1,0 +1,55 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workflow Planner</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div id="toolbar" class="toolbar">
+        <span id="canvas-title" class="title">Untitled</span>
+        <div class="tools">
+            <i class="fas fa-plus" id="add-node" title="Add Node"></i>
+            <i class="fas fa-arrows-alt" id="draw-arrow" title="Draw Arrow"></i>
+            <i class="fas fa-undo" id="undo" title="Undo"></i>
+            <i class="fas fa-redo" id="redo" title="Redo"></i>
+            <i class="fas fa-search-plus" id="zoom-in" title="Zoom In"></i>
+            <i class="fas fa-search-minus" id="zoom-out" title="Zoom Out"></i>
+        </div>
+        <div class="actions">
+            <i class="fas fa-save" id="save" title="Save"></i>
+            <i class="fas fa-download" id="export-json" title="Export JSON"></i>
+            <i class="fas fa-upload" id="import-json" title="Import JSON"></i>
+        </div>
+    </div>
+    <div id="workspace" class="workspace">
+        <div id="main-canvas" class="canvas"></div>
+        <div id="sitemap-panel" class="panel">
+            <div class="panel-header">
+                <span class="panel-title">Sitemaps</span>
+                <i class="fas fa-chevron-right" id="toggle-panel" title="Collapse"></i>
+            </div>
+            <div id="sitemap-content" class="panel-content"></div>
+        </div>
+    </div>
+    <div id="properties-panel" class="properties hidden">
+        <h3>Node Properties</h3>
+        <label>Name: <input id="prop-name" type="text"></label>
+        <label>Description: <textarea id="prop-desc"></textarea></label>
+        <label>Color: <input id="prop-color" type="color"></label>
+        <label>Type: 
+            <select id="prop-type">
+                <option value="standard">Standard</option>
+                <option value="decision">Decision</option>
+                <option value="merge">Merge</option>
+            </select>
+        </label>
+        <button id="prop-save">Save</button>
+    </div>
+    <input type="file" id="file-input" accept=".json" style="display:none;">
+    <script src="script.js"></script>
+</body>
+</html>
