@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UX Architect</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'brand-primary': '#1E40AF',
+            'brand-secondary': '#DBEAFE',
+            'brand-accent': '#3B82F6',
+          },
+        }
+      }
+    }
+  </script>
+    <link rel="stylesheet" href="assets/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body class="h-full flex flex-col font-sans antialiased">
+
+    <!-- Header -->
+    <header class="flex items-center justify-between p-3 border-b bg-white flex-shrink-0 z-20">
+        <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2">
+                <span class="font-bold text-xl text-brand-primary bg-brand-secondary rounded-lg px-3 py-1">U</span>
+                <h1 id="project-title" class="text-xl font-semibold text-gray-800 cursor-pointer">Untitled Project</h1>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2">
+            <button id="help-btn" class="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-md"><i class="fas fa-question-circle mr-2"></i>Help</button>
+            <button id="preferences-btn" class="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-md"><i class="fas fa-cog mr-2"></i>Preferences</button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex flex-grow overflow-hidden">
+        <!-- Left Panel: Library (Personas & Sitemap) -->
+        <aside id="left-panel" class="w-1/4 max-w-xs bg-white border-r p-4 flex flex-col space-y-4">
+            <!-- Personas Section -->
+            <div class="flex-shrink-0">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="text-lg font-bold text-gray-900">Personas</h2>
+                    <button id="add-persona-btn" class="text-brand-primary hover:text-white hover:bg-brand-primary rounded-full w-7 h-7 flex items-center justify-center transition-colors"><i class="fas fa-plus"></i></button>
+                </div>
+                <ul id="personas-list" class="space-y-1"></ul>
+            </div>
+            
+            <!-- Sitemap Section -->
+            <div class="flex-grow flex flex-col min-h-0">
+                <div class="flex justify-between items-center mb-2 flex-shrink-0">
+                    <h2 class="text-lg font-bold text-gray-900">Sitemap</h2>
+                    <button id="add-sitemap-page-btn" class="text-brand-primary hover:text-white hover:bg-brand-primary rounded-full w-7 h-7 flex items-center justify-center transition-colors"><i class="fas fa-plus"></i></button>
+                </div>
+                <div id="sitemap-tree" class="flex-grow overflow-y-auto pr-2"></div>
+            </div>
+        </aside>
+
+        <!-- Center Panel: Canvas -->
+        <div id="center-panel" class="flex-grow bg-gray-50 relative overflow-hidden">
+             <div id="canvas-container" class="w-full h-full cursor-grab">
+                <svg id="canvas-svg" class="absolute top-0 left-0 w-full h-full"></svg>
+                <div id="nodes-container" class="absolute top-0 left-0"></div>
+            </div>
+            <!-- Flow Controls -->
+            <div class="absolute top-4 left-4 bg-white p-2 rounded-lg shadow-md flex items-center space-x-2">
+                 <select id="flow-selector" class="text-sm font-semibold rounded-md border-gray-300 shadow-sm focus:border-brand-primary focus:ring-brand-primary"></select>
+                 <button id="add-flow-btn" class="text-gray-600 hover:bg-gray-100 rounded-md p-2"><i class="fas fa-plus"></i></button>
+                 <button id="delete-flow-btn" class="text-gray-600 hover:bg-red-100 hover:text-red-600 rounded-md p-2"><i class="fas fa-trash"></i></button>
+            </div>
+        </div>
+
+        <!-- Right Panel: Inspector -->
+        <aside id="right-panel" class="w-1/4 max-w-xs bg-white border-l p-4 overflow-y-auto">
+             <div id="inspector-content">
+                <div class="text-center text-gray-500 italic mt-8">Select an item to see its properties.</div>
+            </div>
+        </aside>
+    </main>
+    
+    <!-- Modal Container -->
+    <div id="modal-container"></div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>

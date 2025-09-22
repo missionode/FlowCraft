@@ -1,0 +1,65 @@
+/* For custom styles that can't be handled by Tailwind */
+#canvas-container {
+    background-image: radial-gradient(#dbeafe 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+
+.form-input {
+    @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-primary focus:border-brand-primary sm:text-sm;
+}
+
+/* --- Nodes & Hubs --- */
+.node-handle, .hub-handle {
+    @apply absolute top-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-brand-primary rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-brand-primary;
+}
+.node-handle { @apply -right-3; }
+.hub-handle { @apply -right-3; } /* Hubs can also start connections */
+
+.node-handle:hover, .hub-handle:hover {
+    @apply bg-brand-primary text-white;
+}
+
+.hub {
+    @apply absolute w-10 h-10 bg-white border-2 border-gray-400 rotate-45 group;
+}
+
+/* --- Connection Paths --- */
+.connection-path {
+    stroke: #6B7280; /* gray-500 */
+    stroke-width: 2;
+    fill: none;
+    transition: stroke 0.2s;
+}
+.connection-path.selected {
+    stroke: #3B82F6; /* brand-accent */
+    stroke-width: 3.5;
+}
+.connection-arrow-head {
+    fill: #6B7280;
+    transition: fill 0.2s;
+}
+.connection-path.selected + .connection-arrow-head {
+    fill: #3B82F6;
+}
+.connection-interaction-area {
+    stroke: transparent;
+    stroke-width: 20;
+    fill: none;
+    cursor: pointer;
+}
+.connection-label {
+    font-size: 12px;
+    fill: #4B5563; /* gray-600 */
+    paint-order: stroke;
+    stroke: #fff;
+    stroke-width: 3px;
+    stroke-linecap: butt;
+    stroke-linejoin: miter;
+}
+
+.temp-connection {
+    stroke: #3B82F6; /* brand-accent */
+    stroke-width: 2;
+    stroke-dasharray: 6, 6;
+    fill: none;
+}

@@ -593,14 +593,28 @@
                 const fromEl = document.getElementById(`node-${conn.from}`);
                 const toEl = document.getElementById(`node-${conn.to}`);
 
+                // Handle case where element might not be in DOM yet during initial render
+                if (!fromEl || !toEl) return;
+
                 const fromRect = { x: fromNode.x, y: fromNode.y, width: fromEl.offsetWidth, height: fromEl.offsetHeight };
-                const toRect = { x: toNode.x, y: toNode.y, width: toEl.offsetWidth, height: toEl.offsetHeight };
-
-                const start = getEdgePoint(fromRect, toRect);
-                const end = getEdgePoint(toRect, fromRect);
                 
-                const pathData = `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
+                let start, end, pathData;
 
+                // Handle self-connecting nodes (loops)
+                if (conn.from === conn.to) {
+                    const nodeWidth = fromEl.offsetWidth;
+                    start = { x: fromRect.x + nodeWidth - 10, y: fromRect.y + 10 };
+                    end = { x: fromRect.x + nodeWidth - 10, y: fromRect.y + fromRect.height - 10 };
+                    const cp1 = { x: start.x + 40, y: start.y };
+                    const cp2 = { x: end.x + 40, y: end.y };
+                    pathData = `M ${start.x} ${start.y} C ${cp1.x} ${cp1.y}, ${cp2.x} ${cp2.y}, ${end.x} ${end.y}`;
+                } else {
+                    const toRect = { x: toNode.x, y: toNode.y, width: toEl.offsetWidth, height: toEl.offsetHeight };
+                    start = getEdgePoint(fromRect, toRect);
+                    end = getEdgePoint(toRect, fromRect);
+                    pathData = `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
+                }
+                
                 const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
                 
                 const interactionPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -1030,6 +1044,16 @@
                 };
                 modal.querySelector('#cancel-node-btn').onclick = () => modal.remove();
                 modal.querySelector('#delete-node-btn').onclick = () => {
+                    // --- FIX: Clean up sitemap reference on node delete ---
+                    const nodeToDelete = state.nodes[nodeId];
+                    if (nodeToDelete && nodeToDelete.sitemapId) {
+                        const parentId = Object.keys(state.sitemap).find(pId => state.sitemap[pId].children.includes(nodeToDelete.sitemapId));
+                        if(parentId) {
+                            state.sitemap[parentId].children = state.sitemap[parentId].children.filter(c => c !== nodeToDelete.sitemapId);
+                        }
+                    }
+                    // --- End Fix ---
+
                     delete state.nodes[nodeId];
                     state.connections = state.connections.filter(c => c.from !== nodeId && c.to !== nodeId);
                     saveState();
@@ -1138,6 +1162,16 @@
                     case 'delete':
                     case 'backspace':
                         if (selectedNodeId) {
+                             // --- FIX: Clean up sitemap reference on node delete ---
+                            const nodeToDelete = state.nodes[selectedNodeId];
+                            if (nodeToDelete && nodeToDelete.sitemapId) {
+                                const parentId = Object.keys(state.sitemap).find(pId => state.sitemap[pId].children.includes(nodeToDelete.sitemapId));
+                                if(parentId) {
+                                    state.sitemap[parentId].children = state.sitemap[parentId].children.filter(c => c !== nodeToDelete.sitemapId);
+                                }
+                            }
+                            // --- End Fix ---
+
                             delete state.nodes[selectedNodeId];
                             state.connections = state.connections.filter(c => c.from !== selectedNodeId && c.to !== selectedNodeId);
                             selectedNodeId = null;
@@ -1154,3 +1188,4 @@
     </script>
 </body>
 </html>
+
