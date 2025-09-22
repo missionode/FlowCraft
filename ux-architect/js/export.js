@@ -4,8 +4,15 @@ import { getState } from './state.js';
 function formatStateForExport() {
     const state = getState();
     
-    // Create a deep copy to avoid modifying the original state
+    // Create a deep copy to avoid modifying the original state and remove UI-specific properties
     const exportState = JSON.parse(JSON.stringify(state));
+
+    // We don't need to export UI state like canvas position or selected items
+    delete exportState.canvas;
+    delete exportState.selectedItemId;
+    delete exportState.selectedItemType;
+    delete exportState.activeFlowId;
+
 
     const formatted = {
         projectInfo: {

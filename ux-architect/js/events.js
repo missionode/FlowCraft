@@ -1,6 +1,7 @@
 // Contains all event listeners for the application.
 import { getState, setState, setSelectedItem, updateItemDetails, addPersona, addSitemapPage, addNodeToFlow, updateElementPosition, addUserFlow, setActiveFlow, addConnection, getActiveFlow, deleteConnection, addHubToConnection } from './state.js';
-import { renderAll, createModal, closeModal } from './ui.js';
+import { renderAll, createModal, closeModal, createPreferencesModal } from './ui.js';
+import { exportStateAsJson } from './export.js';
 
 let isDrawingConnection = false;
 let isDragging = false;
@@ -10,6 +11,7 @@ let tempConnectionLine = null;
 
 export function initEventListeners() {
     document.getElementById('project-title').addEventListener('click', handleProjectTitleClick);
+    document.getElementById('preferences-btn').addEventListener('click', handlePreferencesClick);
     document.getElementById('personas-list').addEventListener('click', (e) => handleItemSelection(e, 'persona'));
     const sitemapTree = document.getElementById('sitemap-tree');
     sitemapTree.addEventListener('click', (e) => handleItemSelection(e, 'sitemap'));
@@ -31,8 +33,60 @@ export function initEventListeners() {
     document.getElementById('flow-selector').addEventListener('change', handleFlowChange);
 }
 
-// --- Event Handler Implementations ---
+// --- MODAL & DATA MANAGEMENT HANDLERS ---
+function handlePreferencesClick() {
+    createPreferencesModal();
+    document.getElementById('close-preferences-btn').addEventListener('click', closeModal);
+    document.getElementById('export-json-btn').addEventListener('click', exportStateAsJson);
+    document.getElementById('import-json-btn').addEventListener('click', () => document.getElementById('import-file-input').click());
+    document.getElementById('import-file-input').addEventListener('change', handleImportFile);
+    document.getElementById('pref-project-name').addEventListener('input', (e) => updateProjectDetail('projectName', e.target.value));
+    document.getElementById('pref-project-desc').addEventListener('input', (e) => updateProjectDetail('projectDescription', e.target.value));
+}
 
+function handleImportFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        try {
+            const importedData = JSON.parse(event.target.result);
+            if (importedData.projectInfo && importedData.personas && importedData.sitemap && importedData.userFlows) {
+                const newState = {
+                    projectName: importedData.projectInfo.projectName,
+                    projectDescription: importedData.projectInfo.projectDescription,
+                    personas: importedData.personas,
+                    sitemap: importedData.sitemap,
+                    userFlows: importedData.userFlows,
+                    activeFlowId: importedData.userFlows[0]?.id || null,
+                    selectedItemId: null,
+                    selectedItemType: null,
+                    canvas: { pan: { x: 0, y: 0 }, zoom: 1 }
+                };
+                setState(newState);
+                closeModal();
+                renderAll();
+            } else {
+                alert('Invalid project file format.');
+            }
+        } catch (err) {
+            alert('Error parsing JSON file.');
+            console.error(err);
+        }
+    };
+    reader.readAsText(file);
+}
+
+function updateProjectDetail(key, value) {
+    const state = getState();
+    state[key] = value;
+    setState(state, false);
+    if (key === 'projectName') {
+        document.getElementById('project-title').textContent = value;
+    }
+}
+
+// --- CANVAS HANDLERS ---
 function handleCanvasMouseDown(e) {
     const target = e.target;
     const draggableTarget = target.closest('.node, .hub');

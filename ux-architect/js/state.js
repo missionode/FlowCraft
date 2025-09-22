@@ -1,8 +1,18 @@
 // Manages the application's state.
+import { saveProject } from './db.js';
 
 let state = {};
 let history = [];
 let historyIndex = -1;
+
+// --- Debounce helper for saving ---
+let saveTimeout;
+function debouncedSave(stateToSave) {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+        saveProject(stateToSave);
+    }, 500); // Wait 500ms after the last change to save
+}
 
 // --- State Initialization ---
 export function getInitialState() {
@@ -57,6 +67,9 @@ export function setState(newState, recordHistory = true) {
     if(state.userFlows.length > 0 && !state.activeFlowId) {
         state.activeFlowId = state.userFlows[0].id;
     }
+    
+    // Auto-save on state change
+    debouncedSave(state);
 }
 
 // --- Domain-specific Actions ---

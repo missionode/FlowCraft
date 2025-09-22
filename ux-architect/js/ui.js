@@ -122,7 +122,7 @@ function renderNodesAndHubs() {
 
     if (!activeFlow) return;
 
-    const canShowNodeHandle = activeFlow.visualLayout.nodes.length > 1 || activeFlow.visualLayout.hubs.length > 0;
+    const canShowNodeHandle = activeFlow.visualLayout.nodes.length > 0 || activeFlow.visualLayout.hubs.length > 0;
 
     activeFlow.visualLayout.nodes.forEach(node => {
         const step = activeFlow.steps.find(s => s.stepId === node.stepId);
@@ -264,6 +264,47 @@ export function createModal(title, bodyHtml, footerButtons = []) {
     elements.modalContainer.innerHTML = modalContent;
     document.getElementById('app-modal-backdrop').addEventListener('click', (e) => {
         if (e.target.id === 'app-modal-backdrop') closeModal();
+    });
+}
+
+export function createPreferencesModal() {
+    const state = getState();
+    const modalContent = `
+        <div id="app-modal-backdrop" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex flex-col z-50 p-4 sm:p-8 text-gray-800">
+            <div class="bg-white rounded-lg shadow-2xl w-full max-w-4xl mx-auto flex-grow flex flex-col">
+                <div class="p-6 border-b flex justify-between items-center flex-shrink-0">
+                    <h2 class="text-2xl font-bold text-gray-900">Preferences & Data</h2>
+                    <button id="close-preferences-btn" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+                </div>
+                <div class="p-8 flex-grow overflow-y-auto space-y-8">
+                    <section>
+                        <h3 class="text-lg font-semibold border-b pb-2 mb-4">Project Details</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="pref-project-name" class="block text-sm font-medium text-gray-700 mb-1">Project Name</label>
+                                <input type="text" id="pref-project-name" value="${state.projectName}" class="w-full form-input">
+                            </div>
+                            <div>
+                                <label for="pref-project-desc" class="block text-sm font-medium text-gray-700 mb-1">Project Description</label>
+                                <textarea id="pref-project-desc" rows="3" class="w-full form-input">${state.projectDescription}</textarea>
+                            </div>
+                        </div>
+                    </section>
+                    <section>
+                        <h3 class="text-lg font-semibold border-b pb-2 mb-4">Data Management</h3>
+                        <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+                            <button id="export-json-btn" class="bg-brand-primary text-white px-4 py-2 rounded-md hover:bg-blue-800 flex-1 flex items-center justify-center"><i class="fas fa-download mr-2"></i>Export as JSON Prompt</button>
+                            <button id="import-json-btn" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 flex-1 flex items-center justify-center"><i class="fas fa-upload mr-2"></i>Import from JSON</button>
+                            <input type="file" id="import-file-input" class="hidden" accept=".json">
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    `;
+    elements.modalContainer.innerHTML = modalContent;
+    elements.modalContainer.querySelectorAll('.form-input').forEach(el => {
+         el.classList.add('px-3', 'py-2', 'border', 'border-gray-300', 'rounded-md', 'shadow-sm', 'focus:outline-none', 'focus:ring-brand-primary', 'focus:border-brand-primary');
     });
 }
 

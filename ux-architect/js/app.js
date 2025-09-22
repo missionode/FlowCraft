@@ -1,15 +1,14 @@
 // Main application entry point.
-import { setState, getInitialState } from './state.js';
+import { setState } from './state.js';
 import { renderAll } from './ui.js';
 import { initEventListeners } from './events.js';
-// import { loadProject } from './db.js';
+import { loadProject } from './db.js';
 
-function init() {
+async function init() {
     console.log("UX Architect App Initializing...");
     
-    // For now, we start with a fresh state.
-    // Later, this will be replaced with loadProject()
-    const initialState = getInitialState();
+    // Load the last saved project from IndexedDB
+    const initialState = await loadProject();
     setState(initialState, false); // Initial state should not be part of history
     
     initEventListeners();
